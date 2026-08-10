@@ -1,0 +1,15 @@
+.git
+
+.github
+
+data/*
+
+*.log
+
+*.tmp
+
+*.bak
+
+*.cache
+
+README.md
