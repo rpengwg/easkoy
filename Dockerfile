@@ -1,22 +1,58 @@
 FROM alpine:latest
 
-RUN apk add --no-cache bash curl jq supervisor
+
+LABEL maintainer="Easkoy"
+
+
+RUN apk add --no-cache \
+bash \
+curl \
+wget \
+jq \
+supervisor \
+openssl \
+ca-certificates
+
 
 WORKDIR /app
 
-RUN mkdir -p /app/config
 
-COPY config/config.json.template /app/config/
-COPY scripts/entrypoint.sh /app/
-COPY scripts/output_node.sh /app/
+RUN mkdir -p \
+/app/config \
+/app/data
+
+
+# 安装sing-box
+
+RUN ARCH=$(uname -m) && \
+if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi && \
+if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+wget -O /tmp/sing-box.tar.gz \
+https://github.com/SagerNet/sing-box/releases/latest/download/sing-box-linux-${ARCH}.tar.gz && \
+tar -zxvf /tmp/sing-box.tar.gz -C /tmp && \
+mv /tmp/sing-box*/sing-box /usr/local/bin/sing-box && \
+chmod +x /usr/local/bin/sing-box
+
+
+
+COPY config/config.json.template \
+/app/config/
+
+
+COPY scripts/*.sh /app/
+
+
+COPY supervisord/supervisord.conf \
+/etc/supervisor/conf.d/supervisord.conf
+
+
 
 RUN chmod +x /app/*.sh
 
-# sing-box and cloudflared binaries should be added here
-# in production build replace this section with official releases
 
-COPY supervisord/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 443
+
+
 
 ENTRYPOINT ["/app/entrypoint.sh"]
