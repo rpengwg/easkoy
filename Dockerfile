@@ -1,7 +1,10 @@
 FROM alpine:latest
 
 
-LABEL maintainer="Easkoy"
+LABEL name="Easkoy"
+
+LABEL version="1.1"
+
 
 
 RUN apk add --no-cache \
@@ -9,12 +12,14 @@ bash \
 curl \
 wget \
 jq \
-supervisor \
 openssl \
+supervisor \
 ca-certificates
 
 
+
 WORKDIR /app
+
 
 
 RUN mkdir -p \
@@ -22,7 +27,8 @@ RUN mkdir -p \
 /app/data
 
 
-# 安装sing-box
+
+# 自动安装 sing-box
 
 RUN ARCH=$(uname -m) && \
 if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi && \
@@ -39,7 +45,10 @@ COPY config/config.json.template \
 /app/config/
 
 
-COPY scripts/*.sh /app/
+
+COPY scripts/*.sh \
+/app/
+
 
 
 COPY supervisord/supervisord.conf \
