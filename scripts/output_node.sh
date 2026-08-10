@@ -1,13 +1,51 @@
-#!/bin/sh
+#!/bin/bash
 
-echo "================================="
-echo " Easkoy Node Information"
-echo "================================="
-echo "Protocol : VLESS TCP Reality"
-echo "UUID     : $UUID"
-echo "SNI      : $SNI"
-echo "ShortID  : $SHORT_ID"
-echo "PublicKey: $PUBLIC_KEY"
-echo ""
-echo "Use your platform domain as server address."
+
+echo
+
+echo "========== Easkoy Node =========="
+
+
+echo "Protocol:"
+echo "VLESS TCP Reality"
+
+
+echo
+
+echo "UUID:"
+echo "${UUID}"
+
+
+echo
+
+echo "Server:"
+echo "${RAILWAY_PUBLIC_DOMAIN}"
+
+
+echo
+
+echo "Port:"
+echo "${PORT}"
+
+
+echo
+
+echo "SNI:"
+echo "${SNI}"
+
+
+echo
+
+echo "PublicKey:"
+echo "${PUBLIC_KEY}"
+
+
+echo
+
+echo "ShortID:"
+echo "${SHORT_ID}"
+
+
+echo
+
 echo "================================="
