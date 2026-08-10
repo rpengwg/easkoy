@@ -28,16 +28,17 @@ RUN mkdir -p \
 
 
 
-# 自动安装 sing-box
+# 自动安装最新版 sing-box
 
 RUN ARCH=$(uname -m) && \
-if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi && \
-if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
-wget -O /tmp/sing-box.tar.gz \
-https://github.com/SagerNet/sing-box/releases/latest/download/sing-box-linux-${ARCH}.tar.gz && \
-tar -zxvf /tmp/sing-box.tar.gz -C /tmp && \
-mv /tmp/sing-box*/sing-box /usr/local/bin/sing-box && \
-chmod +x /usr/local/bin/sing-box
+    if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi && \
+    if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+    VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r .tag_name) && \
+    wget -O /tmp/sing-box.tar.gz \
+    https://github.com/SagerNet/sing-box/releases/download/${VERSION}/sing-box-${VERSION#v}-linux-${ARCH}.tar.gz && \
+    tar -zxvf /tmp/sing-box.tar.gz -C /tmp && \
+    mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box && \
+    chmod +x /usr/local/bin/sing-box
 
 
 
