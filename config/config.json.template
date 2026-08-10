@@ -1,36 +1,78 @@
 {
-  "log": {
-    "level": "info"
-  },
-  "inbounds": [
-    {
-      "type": "vless",
-      "tag": "vless-reality",
-      "listen": "0.0.0.0",
-      "listen_port": 443,
-      "users": [
-        {
-          "uuid": "${UUID}",
-          "flow": "xtls-rprx-vision"
-        }
-      ],
-      "tls": {
-        "enabled": true,
-        "server_name": "${SNI}",
-        "reality": {
-          "enabled": true,
-          "private_key": "${PRIVATE_KEY}",
-          "short_id": [
-            "${SHORT_ID}"
-          ]
-        }
-      }
-    }
-  ],
-  "outbounds": [
-    {
-      "type": "direct",
-      "tag": "direct"
-    }
-  ]
+"log":{
+"level":"info"
+},
+
+
+"inbounds":[
+
+{
+
+"type":"vless",
+
+"tag":"easkoy-reality",
+
+
+"listen":"0.0.0.0",
+
+"listen_port":443,
+
+
+"users":[
+
+{
+
+"uuid":"${UUID}",
+
+"flow":"xtls-rprx-vision"
+
+}
+
+],
+
+
+"tls":{
+
+"enabled":true,
+
+
+"server_name":"${SNI}",
+
+
+"reality":{
+
+"enabled":true,
+
+
+"private_key":"${PRIVATE_KEY}",
+
+
+"short_id":[
+
+"${SHORT_ID}"
+
+]
+
+}
+
+}
+
+}
+
+],
+
+
+
+"outbounds":[
+
+{
+
+"type":"direct",
+
+"tag":"direct"
+
+}
+
+]
+
 }
