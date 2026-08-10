@@ -2,9 +2,10 @@ FROM alpine:latest
 
 
 LABEL name="Easkoy"
+LABEL version="1.1.1"
 
-LABEL version="1.1"
 
+ARG SINGBOX_VERSION=1.12.8
 
 
 RUN apk add --no-cache \
@@ -17,9 +18,7 @@ supervisor \
 ca-certificates
 
 
-
 WORKDIR /app
-
 
 
 RUN mkdir -p \
@@ -28,41 +27,37 @@ RUN mkdir -p \
 
 
 
-# 自动安装最新版 sing-box
-
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi && \
     if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
-    VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r .tag_name) && \
     wget -O /tmp/sing-box.tar.gz \
-    https://github.com/SagerNet/sing-box/releases/download/${VERSION}/sing-box-${VERSION#v}-linux-${ARCH}.tar.gz && \
-    tar -zxvf /tmp/sing-box.tar.gz -C /tmp && \
-    mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box && \
-    chmod +x /usr/local/bin/sing-box
+    https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-${ARCH}.tar.gz \
+    && tar -zxvf /tmp/sing-box.tar.gz -C /tmp \
+    && cp /tmp/sing-box-${SINGBOX_VERSION}-linux-${ARCH}/sing-box \
+    /usr/local/bin/sing-box \
+    && chmod +x /usr/local/bin/sing-box
 
 
 
-COPY config/config.json.template \
-/app/config/
+RUN echo "===== sing-box check =====" \
+    && which sing-box \
+    && sing-box version
 
 
 
-COPY scripts/*.sh \
-/app/
+COPY config/ /app/config/
 
+COPY scripts/*.sh /app/
 
 
 COPY supervisord/supervisord.conf \
 /etc/supervisor/conf.d/supervisord.conf
 
 
-
 RUN chmod +x /app/*.sh
 
 
-
 EXPOSE 443
-
 
 
 ENTRYPOINT ["/app/entrypoint.sh"]
