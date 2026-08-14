@@ -1,148 +1,83 @@
-#!/bin/bash
+#!/bin/sh
 
-set -u
 
 echo
 echo "=================================================="
-echo "                  Easkoy Nodes"
+echo "              Easkoy Node Information"
 echo "=================================================="
 
-echo
-echo "--------------------------------------------------"
-echo " VLESS + TCP + REALITY"
-echo "--------------------------------------------------"
+
+ADDRESS="${RAILWAY_TCP_PROXY_DOMAIN:-NOT_AVAILABLE}"
+
+PORT="${RAILWAY_TCP_PROXY_PORT:-$REALITY_LISTEN_PORT}"
+
 
 echo
-
 echo "Address:"
-if [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ]; then
-    echo "${RAILWAY_TCP_PROXY_DOMAIN}"
-else
-    echo "NOT_AVAILABLE"
-fi
+echo "$ADDRESS"
+
 
 echo
-
 echo "Port:"
-if [ -n "${RAILWAY_TCP_PROXY_PORT:-}" ]; then
-    echo "${RAILWAY_TCP_PROXY_PORT}"
-else
-    echo "NOT_AVAILABLE"
-fi
+echo "$PORT"
+
 
 echo
-
-echo "Internal Port:"
-echo "${REALITY_LISTEN_PORT:-NOT_AVAILABLE}"
-
-echo
-
 echo "UUID:"
-echo "${UUID:-NOT_AVAILABLE}"
+echo "$UUID"
+
 
 echo
-
 echo "PublicKey:"
-echo "${PUBLIC_KEY:-NOT_AVAILABLE}"
+echo "$PUBLIC_KEY"
+
 
 echo
-
 echo "ShortID:"
-echo "${SHORT_ID:-NOT_AVAILABLE}"
+echo "$SHORT_ID"
+
 
 echo
-
 echo "SNI:"
-echo "${REALITY_SNI:-NOT_AVAILABLE}"
+echo "$REALITY_SNI"
+
 
 echo
-
 echo "Flow:"
 echo "xtls-rprx-vision"
 
-echo
 
-echo "Network:"
-echo "TCP"
 
-echo
+# ==================================================
+# VLESS URI
+# ==================================================
 
-echo "Security:"
-echo "REALITY"
+if [ "$ADDRESS" != "NOT_AVAILABLE" ]; then
 
-echo
 
-echo "--------------------------------------------------"
-echo " VLESS + WebSocket + TLS"
-echo "--------------------------------------------------"
+LINK="vless://${UUID}@${ADDRESS}:${PORT}?type=tcp&security=reality&pbk=${PUBLIC_KEY}&fp=chrome&sni=${REALITY_SNI}&sid=${SHORT_ID}&flow=xtls-rprx-vision#Easkoy-Reality"
 
-echo
-
-echo "Address:"
-if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
-    echo "${RAILWAY_PUBLIC_DOMAIN}"
-else
-    echo "NOT_AVAILABLE"
-fi
-
-echo
-
-echo "Port:"
-echo "443"
-
-echo
-
-echo "UUID:"
-echo "${UUID:-NOT_AVAILABLE}"
-
-echo
-
-echo "Path:"
-echo "${WS_PATH:-NOT_AVAILABLE}"
-
-echo
-
-echo "Network:"
-echo "WebSocket"
-
-echo
-
-echo "TLS:"
-echo "Railway HTTPS"
-
-echo
-
-echo "URL:"
-if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
-    echo "https://${RAILWAY_PUBLIC_DOMAIN}${WS_PATH:-/easkoy-ws}"
-else
-    echo "NOT_AVAILABLE"
-fi
-
-echo
-
-echo "--------------------------------------------------"
-
-if [ -z "${RAILWAY_TCP_PROXY_DOMAIN:-}" ] || \
-   [ -z "${RAILWAY_TCP_PROXY_PORT:-}" ]; then
-
-    echo
-    echo "[WARNING] Railway TCP Proxy is not detected."
-    echo
-    echo "REALITY node cannot be used until TCP Proxy"
-    echo "is enabled in Railway."
-    echo
-fi
-
-if [ -z "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
-
-    echo
-    echo "[WARNING] Railway public domain is not detected."
-    echo
-    echo "WS + TLS node requires a Railway public domain."
-    echo
-fi
 
 echo
 echo "=================================================="
+echo "              VLESS Import Link"
+echo "=================================================="
+
+
 echo
+echo "$LINK"
+
+
+else
+
+
+echo
+echo "[WARNING]"
+echo "Railway TCP Proxy not detected."
+
+
+fi
+
+
+echo
+echo "=================================================="
