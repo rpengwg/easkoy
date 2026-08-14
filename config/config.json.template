@@ -4,48 +4,93 @@
     "timestamp": true
   },
 
+
   "inbounds": [
+
     {
+
       "type": "vless",
+
       "tag": "easkoy-reality",
 
+
       "listen": "0.0.0.0",
+
       "listen_port": ${REALITY_LISTEN_PORT},
 
+
       "users": [
+
         {
+
           "uuid": "${UUID}",
+
           "flow": "xtls-rprx-vision"
+
         }
+
       ],
 
+
       "tls": {
+
+
         "enabled": true,
+
 
         "server_name": "${REALITY_SNI}",
 
+
         "reality": {
+
+
           "enabled": true,
 
+
           "handshake": {
+
+
             "server": "${REALITY_HANDSHAKE_DOMAIN}",
+
             "server_port": ${REALITY_HANDSHAKE_PORT}
+
+
           },
+
 
           "private_key": "${PRIVATE_KEY}",
 
+
           "short_id": [
+
             "${SHORT_ID}"
+
           ]
+
+
         }
+
+
       }
+
+
     }
+
+
   ],
 
+
+
   "outbounds": [
+
     {
+
       "type": "direct",
+
       "tag": "direct"
+
     }
+
   ]
+
 }
