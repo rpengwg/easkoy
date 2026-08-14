@@ -28,8 +28,8 @@
           "enabled": true,
 
           "handshake": {
-            "server": "${REALITY_SNI}",
-            "server_port": 443
+            "server": "${REALITY_HANDSHAKE_DOMAIN}",
+            "server_port": ${REALITY_HANDSHAKE_PORT}
           },
 
           "private_key": "${PRIVATE_KEY}",
