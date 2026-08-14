@@ -4,7 +4,7 @@ set -eu
 
 echo
 echo "========================================"
-echo "       Easkoy VLESS REALITY Starting"
+echo "     Easkoy VLESS REALITY - Railway"
 echo "========================================"
 echo
 
@@ -13,8 +13,8 @@ echo
 # ==================================================
 
 # UUID
-# If UUID is provided through Railway Variables,
-# use it. Otherwise generate a new UUID.
+# Railway Variables 中如果设置 UUID，则使用指定 UUID。
+# 未设置时自动生成。
 if [ -n "${UUID:-}" ]; then
     NODE_UUID="$UUID"
 else
@@ -25,23 +25,40 @@ fi
 # 2. Railway TCP Proxy application port
 # ==================================================
 #
-# Current Railway configuration:
+# Railway TCP Proxy:
 #
-# TCP Proxy -> Application Port 8080
+#   External:
+#       RAILWAY_TCP_PROXY_DOMAIN:
+#       RAILWAY_TCP_PROXY_PORT:
 #
-# Therefore this test version listens on 8080.
+#   Internal:
+#       RAILWAY_TCP_APPLICATION_PORT
 #
-# IMPORTANT:
-# We intentionally do NOT use:
-#   WS_LISTEN_PORT
-#   PORT
+# 优先使用 Railway TCP Proxy 的 Application Port。
 #
-# We also intentionally ignore any old:
-#   REALITY_LISTEN_PORT
+# 如果 Railway 没有提供该变量：
 #
-# variable and use 8080 directly.
+#   1. PORT
+#   2. 8080
 #
-REALITY_LISTEN_PORT="8080"
+# 依次作为 fallback。
+#
+
+if [ -n "${RAILWAY_TCP_APPLICATION_PORT:-}" ]; then
+
+    REALITY_LISTEN_PORT="$RAILWAY_TCP_APPLICATION_PORT"
+
+elif [ -n "${PORT:-}" ]; then
+
+    REALITY_LISTEN_PORT="$PORT"
+
+else
+
+    REALITY_LISTEN_PORT="8080"
+
+fi
+
+echo "[INFO] Effective listen port: $REALITY_LISTEN_PORT"
 
 # ==================================================
 # 3. Reality SNI
@@ -50,16 +67,40 @@ REALITY_LISTEN_PORT="8080"
 REALITY_SNI="${REALITY_SNI:-www.microsoft.com}"
 
 # ==================================================
-# 4. Check sing-box
+# 4. Reality handshake
+# ==================================================
+#
+# REALITY server requires a reachable TLS handshake
+# destination.
+#
+# Default:
+#
+#   www.microsoft.com:443
+#
+# 可以通过 Railway Variable 修改：
+#
+#   REALITY_HANDSHAKE_DOMAIN
+#   REALITY_HANDSHAKE_PORT
+#
+
+REALITY_HANDSHAKE_DOMAIN="${REALITY_HANDSHAKE_DOMAIN:-www.microsoft.com}"
+REALITY_HANDSHAKE_PORT="${REALITY_HANDSHAKE_PORT:-443}"
+
+# ==================================================
+# 5. Check sing-box
 # ==================================================
 
+echo
 echo "[INFO] Checking sing-box..."
 
 if ! command -v sing-box >/dev/null 2>&1; then
+
     echo
     echo "[ERROR] sing-box command not found."
     echo
+
     exit 1
+
 fi
 
 sing-box version
@@ -67,34 +108,42 @@ sing-box version
 echo
 
 # ==================================================
-# 5. Generate Reality key pair
+# 6. Generate Reality key pair
 # ==================================================
 
 echo "[INFO] Generating Reality key pair..."
 
 KEY_OUTPUT="$(sing-box generate reality-keypair 2>&1)" || {
+
     echo
     echo "[ERROR] Failed to generate Reality key pair."
     echo
     echo "$KEY_OUTPUT"
     echo
+
     exit 1
 }
 
-PRIVATE_KEY="$(echo "$KEY_OUTPUT" | awk '/PrivateKey:/ {print $2}')"
-PUBLIC_KEY="$(echo "$KEY_OUTPUT" | awk '/PublicKey:/ {print $2}')"
+PRIVATE_KEY="$(echo "$KEY_OUTPUT" | awk -F': ' '/PrivateKey:/ {print $2}' | tr -d '[:space:]')"
+
+PUBLIC_KEY="$(echo "$KEY_OUTPUT" | awk -F': ' '/PublicKey:/ {print $2}' | tr -d '[:space:]')"
 
 if [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ]; then
+
     echo
     echo "[ERROR] Reality key pair generation failed."
     echo
     echo "$KEY_OUTPUT"
     echo
+
     exit 1
+
 fi
 
+echo "[INFO] Reality key pair generated."
+
 # ==================================================
-# 6. Generate Reality ShortID
+# 7. Generate Reality ShortID
 # ==================================================
 
 echo "[INFO] Generating Reality ShortID..."
@@ -102,34 +151,57 @@ echo "[INFO] Generating Reality ShortID..."
 SHORT_ID="$(head -c 4 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 
 if [ -z "$SHORT_ID" ]; then
+
     echo
     echo "[ERROR] Failed to generate Reality ShortID."
     echo
+
     exit 1
+
 fi
 
+echo "[INFO] Reality ShortID: $SHORT_ID"
+
 # ==================================================
-# 7. Configuration paths
+# 8. Configuration paths
 # ==================================================
 
-CONFIG_TEMPLATE="/app/config/config.json.template"
-CONFIG_FILE="/app/config/config.json"
+CONFIG_DIR="/app/config"
+CONFIG_TEMPLATE="$CONFIG_DIR/config.json.template"
+CONFIG_FILE="$CONFIG_DIR/config.json"
 
 if [ ! -f "$CONFIG_TEMPLATE" ]; then
+
     echo
     echo "[ERROR] Configuration template not found:"
     echo "$CONFIG_TEMPLATE"
     echo
+
     exit 1
+
 fi
 
-mkdir -p /app/config
+mkdir -p "$CONFIG_DIR"
 
 # ==================================================
-# 8. Generate sing-box configuration
+# 9. Generate sing-box configuration
 # ==================================================
 
+echo
 echo "[INFO] Generating sing-box configuration..."
+
+#
+# 注意：
+# config.json.template 中使用：
+#
+# ${UUID}
+# ${REALITY_LISTEN_PORT}
+# ${REALITY_SNI}
+# ${PRIVATE_KEY}
+# ${SHORT_ID}
+# ${REALITY_HANDSHAKE_DOMAIN}
+# ${REALITY_HANDSHAKE_PORT}
+#
 
 sed \
     -e "s|\${UUID}|$NODE_UUID|g" \
@@ -137,33 +209,48 @@ sed \
     -e "s|\${REALITY_SNI}|$REALITY_SNI|g" \
     -e "s|\${PRIVATE_KEY}|$PRIVATE_KEY|g" \
     -e "s|\${SHORT_ID}|$SHORT_ID|g" \
+    -e "s|\${REALITY_HANDSHAKE_DOMAIN}|$REALITY_HANDSHAKE_DOMAIN|g" \
+    -e "s|\${REALITY_HANDSHAKE_PORT}|$REALITY_HANDSHAKE_PORT|g" \
     "$CONFIG_TEMPLATE" > "$CONFIG_FILE"
 
 # ==================================================
-# 9. Validate configuration
+# 10. Validate configuration
 # ==================================================
 
 echo
 echo "[INFO] Validating sing-box configuration..."
 
 if ! sing-box check -c "$CONFIG_FILE"; then
+
     echo
     echo "========================================"
-    echo "[ERROR] sing-box configuration INVALID"
+    echo " [ERROR] sing-box configuration INVALID"
     echo "========================================"
     echo
+
     echo "Configuration:"
     echo "$CONFIG_FILE"
+
     echo
     cat "$CONFIG_FILE"
     echo
+
     exit 1
+
 fi
 
+echo
 echo "[INFO] sing-box configuration OK."
 
 # ==================================================
-# 10. Display node information
+# 11. Railway environment information
+# ==================================================
+
+RAILWAY_TCP_DOMAIN="${RAILWAY_TCP_PROXY_DOMAIN:-}"
+RAILWAY_TCP_PORT="${RAILWAY_TCP_PROXY_PORT:-}"
+
+# ==================================================
+# 12. Display node information
 # ==================================================
 
 echo
@@ -208,10 +295,14 @@ echo "Security:"
 echo "reality"
 
 echo
+echo "REALITY Handshake:"
+echo "$REALITY_HANDSHAKE_DOMAIN:$REALITY_HANDSHAKE_PORT"
+
+echo
 echo "========================================"
 
 # ==================================================
-# 11. Railway network information
+# 13. Railway Network Information
 # ==================================================
 
 echo
@@ -247,17 +338,19 @@ echo
 echo "========================================"
 
 # ==================================================
-# 12. Export variables
+# 14. Export variables
 # ==================================================
 
 export UUID="$NODE_UUID"
-export PUBLIC_KEY
-export SHORT_ID
-export REALITY_SNI
-export REALITY_LISTEN_PORT
+export PUBLIC_KEY="$PUBLIC_KEY"
+export SHORT_ID="$SHORT_ID"
+export REALITY_SNI="$REALITY_SNI"
+export REALITY_LISTEN_PORT="$REALITY_LISTEN_PORT"
+export REALITY_HANDSHAKE_DOMAIN="$REALITY_HANDSHAKE_DOMAIN"
+export REALITY_HANDSHAKE_PORT="$REALITY_HANDSHAKE_PORT"
 
 # ==================================================
-# 13. Output node
+# 15. Output node information
 # ==================================================
 
 if [ -f "/app/output_node.sh" ]; then
@@ -278,7 +371,59 @@ else
 fi
 
 # ==================================================
-# 14. Start sing-box
+# 16. Final Railway endpoint
+# ==================================================
+
+echo
+echo "========================================"
+echo "          Railway REALITY Endpoint"
+echo "========================================"
+
+if [ -n "$RAILWAY_TCP_DOMAIN" ] && [ -n "$RAILWAY_TCP_PORT" ]; then
+
+    echo
+    echo "Address:"
+    echo "$RAILWAY_TCP_DOMAIN"
+
+    echo
+    echo "Port:"
+    echo "$RAILWAY_TCP_PORT"
+
+    echo
+    echo "Endpoint:"
+    echo "$RAILWAY_TCP_DOMAIN:$RAILWAY_TCP_PORT"
+
+else
+
+    echo
+    echo "[WARNING] Railway TCP Proxy information unavailable."
+
+    echo
+    echo "You must enable:"
+    echo "Settings -> Networking -> TCP Proxy"
+
+fi
+
+echo
+echo "========================================"
+
+# ==================================================
+# 17. Supervisor check
+# ==================================================
+
+if [ ! -f "/etc/supervisor/conf.d/supervisord.conf" ]; then
+
+    echo
+    echo "[ERROR] Supervisor configuration not found:"
+    echo "/etc/supervisor/conf.d/supervisord.conf"
+    echo
+
+    exit 1
+
+fi
+
+# ==================================================
+# 18. Start
 # ==================================================
 
 echo
@@ -286,13 +431,5 @@ echo "========================================"
 echo "          Starting sing-box"
 echo "========================================"
 echo
-
-if [ ! -f "/etc/supervisor/conf.d/supervisord.conf" ]; then
-    echo
-    echo "[ERROR] Supervisor configuration not found:"
-    echo "/etc/supervisor/conf.d/supervisord.conf"
-    echo
-    exit 1
-fi
 
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
